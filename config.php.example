@@ -1,0 +1,20 @@
+<?php
+
+// Конфігурація для TelegramBot
+define('TELEGRAM_API_TOKEN', '');
+define('TELEGRAM_WEBHOOK_URL', '');
+define('TELEGRAM_TIMEOUT', 30);
+
+// Конфігурація для TrelloClient
+define('TRELLO_API_KEY', '');
+define('TRELLO_API_TOKEN', '');
+define('TRELLO_CALLBACK', '');
+define('TRELLO_BOARD', '');
+
+// Конфігурація для Database
+define('DB_HOST', '127.0.0.1');
+define('DB_PORT', 3306);
+define('DB_DATABASE', '');
+define('DB_USERNAME', '');
+define('DB_PASSWORD', '');
+define('DB_CHARSET', 'utf8mb4');
