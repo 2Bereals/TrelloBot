@@ -59,5 +59,5 @@ class TelegramBot
 
         return $response ? json_decode($response, true) : false;
     }
-    
+
 }

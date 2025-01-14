@@ -262,6 +262,112 @@ class TrelloClient
     }
 
     /**
+     * Отримує всі картки з вказаної дошки
+     * 
+     * @param string $boardId ID дошки Trello
+     * @return array|null Список карток з дошки або null у разі помилки
+     */
+    public function getAllCardsFromBoard($boardId)
+    {
+        $endpoint = "/boards/{$boardId}/cards";
+        return $this->apiRequest($endpoint);
+    }
+
+    /**
+     * Отримує інформацію про користувача Trello.
+     * 
+     * @param string $userId ID користувача.
+     * @return array Масив з ім'ям і email користувача.
+     */
+    public function getUser($userId)
+    {
+        $endpoint = "/members/$userId";
+        $response = $this->apiRequest($endpoint);
+
+        if ($response && isset($response['fullName'], $response['email'])) {
+            return [
+                'name' => $response['fullName'],
+                'email' => $response['email'],
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Отримує всі картки з дошки, виключаючи картки з колонки "Done"
+     * 
+     * @param string $boardId ID дошки Trello
+     * @return array Список карток з деталями
+     */
+    public function getFilteredCardsFromBoard($boardId)
+    {
+        $lists = $this->getListsOnBoard($boardId);
+        if (!$lists) {
+            throw new Exception("Не вдалося отримати списки з дошки $boardId.");
+        }
+
+        $listIdsToInclude = [];
+        $listNames = [];
+        foreach ($lists as $list) {
+            if (strcasecmp($list['name'], 'Done') !== 0) {
+                $listIdsToInclude[] = $list['id'];
+                $listNames[$list['id']] = $list['name'];
+            }
+        }
+
+        if (empty($listIdsToInclude)) {
+            throw new Exception("На дошці $boardId немає списків, окрім 'Done'.");
+        }
+
+        $allCards = $this->getAllCardsFromBoard($boardId);
+        if (!$allCards) {
+            throw new Exception("Не вдалося отримати картки з дошки $boardId.");
+        }
+
+        $filteredCards = [];
+        foreach ($allCards as $card) {
+            if (in_array($card['idList'], $listIdsToInclude)) {
+                $members = $this->getCardMembers($card['id']);
+                $filteredCards[] = [
+                    'card_name' => $card['name'],
+                    'column_name' => $listNames[$card['idList']],
+                    'members' => $members,
+                ];
+            }
+        }
+
+        return $filteredCards;
+    }
+
+    /**
+     * Отримує інформацію про учасників картки
+     * 
+     * @param string $cardId ID картки
+     * @return array Масив з інформацією про учасників
+     */
+    private function getCardMembers($cardId)
+    {
+        $cardDetails = $this->getCard($cardId);
+        if (!$cardDetails || !isset($cardDetails['idMembers'])) {
+            return [];
+        }
+
+        $members = [];
+        foreach ($cardDetails['idMembers'] as $memberId) {
+            $memberInfo = $this->getUser($memberId);
+            if ($memberInfo) {
+                $members[] = [
+                    'name' => $memberInfo['name'],
+                    'email' => $memberInfo['email'] ?? 'N/A',
+                ];
+            }
+        }
+
+        return $members;
+    }
+
+    /**
      * Обробка запиту вебхука від Trello
      * 
      * @return array|null Масив з інформацією про картку та колонку

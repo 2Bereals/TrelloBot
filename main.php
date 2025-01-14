@@ -68,7 +68,39 @@ if (isset($update['message'])) {
         ];
         $DB->execute($sql, $params);
         $telegram->sendMessage($chatId, 'Чат успішно звязано з дошкой' );
-        
+
+    }elseif (str_contains( $text, '/tasks') ) {
+        $cards = $trello->getFilteredCardsFromBoard($boardId);
+
+        if (empty($cards)) $telegram->sendMessage($chatId, 'Немає активних задач' );
+        $count = count($cards);
+        foreach ($cards as $card) {
+            $message = '';
+            $message .= "Назва: " . $card['card_name'] . "\n";
+            $message .= "Колонка: " . $card['column_name'] . "\n";
+            $message .= "Учасники:\n";
+            if (empty($card['members'])){
+                $message .= "Не призначено \n";
+            }else{
+                foreach ($card['members'] as $member) {
+                    $sql = "SELECT first_name FROM boards WHERE email = :email";
+                    $params = [
+                        ':email' => $member['email']
+                    ];
+                    $result = $DB->fetch($sql, $params);
+                    if(empty($result['first_name'])){
+                        $message .= "Користувача немає в групі ". ", Email: " . $member['email'] . "\n";;
+                    }else{
+                        $message .= "Ім'я: " . $result['first_name'] . ", Email: " . $member['email'] . "\n";
+                    }
+                    
+                }
+            }
+
+            $telegram->sendMessage($chatId, $message );
+        }
+        $telegram->sendMessage($chatId, "Активних задач: ".$count );
+
     }else{
         $telegram->sendMessage($chatId, 'Помилка');
 
